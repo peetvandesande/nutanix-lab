@@ -1,0 +1,12 @@
+pm_endpoint = "https://192.168.1.21:8006/"
+node_name   = "pve"
+vm_id_start = 9101
+iso_file_id = "isos:iso/phoenix.x86_64-fnd_5.6.1_patch-aos_6.8.1_ga.iso"
+
+# Optional overrides
+# pool_id      = "nutanix-lab"
+# name_prefix  = "ntnx-ce"
+# datastore_id = "local-lvm"
+# bridge       = "vmbr0"
+# vlan_id      = 10
+# memory_mb    = 32768
