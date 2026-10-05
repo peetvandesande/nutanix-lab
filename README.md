@@ -43,12 +43,12 @@ The Proxmox host forwards between the LAN and the lab and source-NATs lab traffi
 3. Set up the lab on Proxmox:
 
    ```sh
-   scripts/bootstrap-proxmox.sh
+   ansible-playbook ansible/bootstrap.yml
    ```
 
-   This builds the lab network (SDN zone `ntnx` with the two vnets, and a systemd unit for the NAT rule), creates the pool, a `terraform@pve` user and an API token, grants the minimum permissions, checks the ISO and VMIDs, and writes the token to `secret.tfvars`. It reads its settings from `terraform.tfvars` and `network.conf` and is safe to re-run. Use `--rotate-token` to replace the token.
+   This builds the lab network (SDN zone `ntnx` with the two vnets, and a systemd unit for the NAT rule), creates the pool, a `terraform@pve` user and an API token, grants the minimum permissions, checks the ISO and VMIDs, and writes the token to `secret.tfvars`. It reads its settings from `terraform.tfvars` and `network.conf` and is safe to re-run. Use `-e rotate_token=true` to replace the token and `-e proxmox_target=user@host` to override the SSH target. Needs `ansible-core` on your machine.
 
-   Once the VPC exists in Prism Central, set `VPC_ROUTER_IP` in `network.conf` and re-run the bootstrap to add the routes to the overlay subnets.
+   Once the VPC exists in Prism Central, set `VPC_ROUTER_IP` in `network.conf` and re-run the playbook to add the routes to the overlay subnets.
 
 4. Create the VMs:
 
@@ -66,11 +66,14 @@ The Proxmox host forwards between the LAN and the lab and source-NATs lab traffi
 
 ## Removing the lab
 
+Destroy the VMs first, then run the playbook:
+
 ```sh
-scripts/teardown-proxmox.sh
+terraform destroy -var-file=secret.tfvars
+ansible-playbook ansible/teardown.yml
 ```
 
-This destroys the VMs, then removes the token, permissions, pool and (if no other project uses it) the Terraform user, removes the lab network from the Proxmox host, and deletes the local state and `secret.tfvars`. The ISO and the host preparation from step 2 are left in place.
+The playbook stops if the pool still holds VMs. It removes the token, permissions, pool and (if no other project uses it) the Terraform user, removes the lab network from the Proxmox host, and deletes the local state and `secret.tfvars`. Pass `-e confirm=<pool>` to skip the prompt. The ISO and the host preparation from step 2 are left in place.
 
 ## IP addresses
 

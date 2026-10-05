@@ -28,7 +28,7 @@ Written 2026-10-02.
 | VPC in **No-NAT** mode | So LAN clients can reach VM IPs directly. |
 | NAT to the internet done by lenora, not the router | The router may not NAT subnets it isn't directly connected to. One SNAT rule on lenora covers the whole lab. |
 | Node disks on `hddpool`, 64 GB RAM per node | Agreed with the user; ssdpool lacks space. Slow, acceptable for a lab. 64 GB so a Small Prism Central fits next to a CVM – X-Small does not support FVN. |
-| Host setup split over two scripts | `scripts/prepare-proxmox.sh` does the one-time, lab-independent host preparation (nested virtualisation, IPv4 forwarding, FRR). `scripts/bootstrap-proxmox.sh` does everything specific to this lab, including the whole of Phase 1's SDN, NAT and routes, from the settings in `network.conf`. Teardown reverses only the bootstrap. |
+| Host setup split over two scripts | `scripts/prepare-proxmox.sh` does the one-time, lab-independent host preparation (nested virtualisation, IPv4 forwarding, FRR). `ansible/bootstrap.yml` does everything specific to this lab, including the whole of Phase 1's SDN, NAT and routes, from the settings in `network.conf`. Teardown reverses only the bootstrap. |
 
 ## Current state (2026-10-02)
 
@@ -98,8 +98,8 @@ CLAUDE.md – the DHCP cutover has not happened. NTP: `pool.ntp.org`.
 ## Phase 1 – Proxmox SDN (on lenora)
 
 Done by running `scripts/prepare-proxmox.sh` (forwarding, FRR) and then
-`scripts/bootstrap-proxmox.sh` (SDN, NAT unit, routes). The commands below
-describe what those scripts do; don't run them by hand.
+`ansible-playbook ansible/bootstrap.yml` (SDN, NAT unit, routes). The commands below
+describe what those do; don't run them by hand.
 
 IDs: zone ≤ 8 chars, vnet ≤ 8 chars, lowercase.
 
@@ -155,7 +155,7 @@ recreates the bridge:
   `network.conf`. The SNAT unit's interface and source address are taken
   from the host's default route.
 
-`scripts/teardown-proxmox.sh` removes the unit, `frr.conf.local` and the SDN
+`ansible/teardown.yml` removes the unit, `frr.conf.local` and the SDN
 zone. It leaves forwarding on, as that is host preparation.
 
 **Router / LAN side.** This needs the user – don't attempt it. Either:
@@ -180,7 +180,7 @@ regardless, thanks to the SNAT.
   eth1 inside AHV.
 - `terraform.tfvars` (and the `.example`): `datastore_id = "hddpool"`,
   `memory_mb = 65536`.
-- `scripts/bootstrap-proxmox.sh`: grant `PVESDNUser` on `/sdn/zones/ntnx`.
+- `ansible/bootstrap.yml`: grant `PVESDNUser` on `/sdn/zones/ntnx`.
   Today it only grants `localnetwork`, so attaching to the vnets would be
   denied.
 - Update the README (network section, IP addresses).

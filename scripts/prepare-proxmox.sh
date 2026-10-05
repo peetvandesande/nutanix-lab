@@ -2,7 +2,7 @@
 #
 # One-time preparation of a Proxmox host for nested, routed labs like this
 # one. Safe to re-run. Nothing here is specific to this lab, and
-# teardown-proxmox.sh leaves it all in place.
+# ansible/teardown.yml leaves it all in place.
 #
 #   - enables nested virtualisation
 #   - turns on IPv4 forwarding, so the host routes between the LAN and the lab
@@ -61,4 +61,4 @@ else
 fi
 EOF
 
-echo "Done. Next: scripts/bootstrap-proxmox.sh"
+echo "Done. Next: ansible-playbook ansible/bootstrap.yml"

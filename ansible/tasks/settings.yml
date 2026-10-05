@@ -1,0 +1,40 @@
+# Reads the lab settings into `lab`: terraform.tfvars, falling back to the
+# defaults in variables.tf, plus network.conf. Runs on the control node.
+- name: Read terraform and network settings
+  ansible.builtin.set_fact:
+    lab: "{{ lab | default({}) | combine({item.key: value}) }}"
+  loop:
+    - { key: pm_endpoint, src: tf }
+    - { key: pool_id, src: tf }
+    - { key: datastore_id, src: tf }
+    - { key: iso_file_id, src: tf }
+    - { key: vm_id_start, src: tf }
+    - { key: node_count, src: tf }
+    - { key: bridge, src: tf }
+    - { key: external_bridge, src: tf }
+    - { key: sdn_zone, src: net }
+    - { key: underlay_subnet, src: net }
+    - { key: underlay_gateway, src: net }
+    - { key: external_subnet, src: net }
+    - { key: external_gateway, src: net }
+    - { key: lab_range, src: net }
+    - { key: overlay_subnets, src: net }
+    - { key: vpc_router_ip, src: net }
+  vars:
+    tfvars: "{{ lookup('ansible.builtin.file', repo ~ '/terraform.tfvars', errors='ignore') | default('', true) }}"
+    variables_tf: "{{ lookup('ansible.builtin.file', repo ~ '/variables.tf') }}"
+    network_conf: "{{ lookup('ansible.builtin.file', repo ~ '/network.conf') }}"
+    from_tfvars: |-
+      {{ ((tfvars | regex_findall('(?m)^[ \t]*' ~ item.key ~ '[ \t]*=[ \t]*"?([^"#\r\n]*)')) or ['']) | last | trim }}
+    from_default: |-
+      {{ ((variables_tf | regex_findall('variable "' ~ item.key ~ '"[^}]*?default[ \t]*=[ \t]*"?([^"\r\n]*)')) or ['']) | last | trim }}
+    from_net: |-
+      {{ ((network_conf | regex_findall('(?m)^' ~ (item.key | upper) ~ '=(.*)$')) or ['']) | last | replace('"', '') | trim }}
+    value: "{{ (from_tfvars or from_default) if item.src == 'tf' else from_net }}"
+
+- name: Check the required settings are present
+  ansible.builtin.assert:
+    that: lab[item] | length > 0
+    fail_msg: "Missing value for {{ item }} – set it in terraform.tfvars"
+    quiet: true
+  loop: [pm_endpoint, pool_id, datastore_id, iso_file_id, vm_id_start, node_count, bridge, external_bridge]
