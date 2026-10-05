@@ -1,8 +1,12 @@
 # shellcheck shell=bash
-# Shared by the bootstrap and teardown scripts. Source it, then call
+# Shared by the prepare, bootstrap and teardown scripts. Source it, then call
 # load_config [ssh-target].
 
 cd "$(dirname "${BASH_SOURCE[0]}")/.." || exit 1
+
+# Lab network settings: SDN zone, subnets, NAT range and overlay routes
+# shellcheck source=../network.conf
+source network.conf
 
 # Reads a simple scalar from terraform.tfvars, else the variables.tf default
 tfvar() {
@@ -20,7 +24,7 @@ tfvar() {
   echo "${value%"${value##*[![:space:]]}"}"
 }
 
-# Sets the settings both scripts need, plus TARGET for ssh
+# Sets the settings the scripts need, plus TARGET for ssh
 load_config() {
   PM_ENDPOINT=$(tfvar pm_endpoint)
   POOL=$(tfvar pool_id)
@@ -28,11 +32,13 @@ load_config() {
   ISO=$(tfvar iso_file_id)
   VM_ID_START=$(tfvar vm_id_start)
   NODE_COUNT=$(tfvar node_count)
+  BRIDGE=$(tfvar bridge)
+  EXTERNAL_BRIDGE=$(tfvar external_bridge)
   TF_USER=${TF_USER:-terraform@pve}
   TOKEN_NAME=${TOKEN_NAME:-$POOL}
 
   local v
-  for v in PM_ENDPOINT POOL DATASTORE ISO VM_ID_START NODE_COUNT; do
+  for v in PM_ENDPOINT POOL DATASTORE ISO VM_ID_START NODE_COUNT BRIDGE EXTERNAL_BRIDGE; do
     [[ -n "${!v}" ]] || { echo "Missing value for $v – set it in terraform.tfvars" >&2; exit 1; }
   done
 

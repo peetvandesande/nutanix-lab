@@ -29,6 +29,18 @@ resource "proxmox_virtual_environment_vm" "nutanix_ce" {
     type = "l26"
   }
 
+  # UEFI firmware on a q35 machine
+  bios    = "ovmf"
+  machine = "q35"
+
+  # No pre-enrolled keys: Secure Boot stays off for the CE installer and AHV
+  efi_disk {
+    datastore_id      = var.datastore_id
+    file_format       = "raw"
+    type              = "4m"
+    pre_enrolled_keys = false
+  }
+
   # Nested virtualisation: CPU type must be host
   cpu {
     type    = "host"
@@ -63,10 +75,18 @@ resource "proxmox_virtual_environment_vm" "nutanix_ce" {
   # Falls through to the installer while the boot disk is still empty
   boot_order = ["sata0", "ide2"]
 
+  # Firewall off on both NICs: its MAC filtering drops traffic from nested VMs
   network_device {
-    bridge  = var.bridge
-    model   = "e1000"
-    vlan_id = var.vlan_id
+    bridge   = var.bridge
+    model    = "e1000"
+    firewall = false
+  }
+
+  # Uplink for the Flow Virtual Networking external subnet
+  network_device {
+    bridge   = var.external_bridge
+    model    = "e1000"
+    firewall = false
   }
 
   lifecycle {

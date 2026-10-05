@@ -47,15 +47,15 @@ variable "iso_file_id" {
 }
 
 variable "bridge" {
-  description = "Network bridge for the AHV hosts and CVMs"
+  description = "Bridge or SDN vnet for the AHV hosts and CVMs (the underlay)"
   type        = string
-  default     = "vmbr0"
+  default     = "ntnxul"
 }
 
-variable "vlan_id" {
-  description = "Optional VLAN tag for the cluster network"
-  type        = number
-  default     = null
+variable "external_bridge" {
+  description = "Bridge or SDN vnet for the second NIC, the uplink of the Flow Virtual Networking external subnet"
+  type        = string
+  default     = "ntnxext"
 }
 
 # Cluster sizing
