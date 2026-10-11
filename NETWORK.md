@@ -58,10 +58,10 @@ Re-check all of this before continuing – `pvesh get /cluster/sdn/zones`,
 ## Address plan
 
 ```
-LAN 192.168.1.0/24 ── router .1
-      │   route 192.168.32.0/21 → 192.168.1.21  (router or client side)
-lenora vmbr0 192.168.1.21
-      │   forwarding on, SNAT 192.168.32.0/21 → 192.168.1.21
+LAN 192.168.8.0/24 ── router .1
+      │   route 192.168.32.0/21 → 192.168.8.21  (router or client side)
+lenora vmbr0 192.168.8.21
+      │   forwarding on, SNAT 192.168.32.0/21 → 192.168.8.21
       ├── vnet ntnxul   192.168.33.0/24  lenora .1   (net0 of each node)
       └── vnet ntnxext  192.168.37.0/24  lenora .1   (net1 of each node)
                                 │
@@ -92,7 +92,7 @@ pool (the VPC's uplink IP comes from here).
 **Overlay subnets**: gateway `.1` in each (owned by the VPC router), DHCP
 pool `.100-.199`.
 
-**DNS** for nodes and VMs: `192.168.1.1`. Not Themis; see the homelab
+**DNS** for nodes and VMs: `192.168.8.1`. Not Themis; see the homelab
 CLAUDE.md – the DHCP cutover has not happened. NTP: `pool.ntp.org`.
 
 ## Phase 1 – Proxmox SDN (on lenora)
@@ -129,7 +129,7 @@ sysctl -p /etc/sysctl.d/90-ip-forward.conf
 `RemainAfterExit=yes`. It should add, and remove on stop:
 
 ```
-iptables -t nat -A POSTROUTING -s 192.168.32.0/21 -o vmbr0 -j SNAT --to-source 192.168.1.21
+iptables -t nat -A POSTROUTING -s 192.168.32.0/21 -o vmbr0 -j SNAT --to-source 192.168.8.21
 ```
 
 This catches traffic going out to the internet *and* traffic the lab starts
@@ -159,10 +159,10 @@ recreates the bridge:
 zone. It leaves forwarding on, as that is host preparation.
 
 **Router / LAN side.** This needs the user – don't attempt it. Either:
-- a static route on the router, `192.168.32.0/21 via 192.168.1.21`, if it
+- a static route on the router, `192.168.32.0/21 via 192.168.8.21`, if it
   supports one, or
 - a route on the workstation only (macOS:
-  `sudo route -n add -net 192.168.32.0/21 192.168.1.21`).
+  `sudo route -n add -net 192.168.32.0/21 192.168.8.21`).
 
 Without it, only lenora can reach the lab. Outbound from the lab works
 regardless, thanks to the SNAT.
@@ -202,7 +202,7 @@ cluster -s 192.168.33.21,192.168.33.22,192.168.33.23 --redundancy_factor=2 creat
 ```
 
 Then in Prism Element: cluster VIP `.30`, data services IP `.31`, DNS
-`192.168.1.1`, NTP.
+`192.168.8.1`, NTP.
 
 **Second uplink:** make sure AHV's `eth0` (MAC of net0) is the only uplink of
 `vs0`/`br0`. Then create virtual switch **`vs1`** with `eth1` on every
@@ -230,7 +230,7 @@ host, single uplink, active-backup. If the installer pulled both NICs into
    routable prefixes** `192.168.34.0/24`, `.35.0/24`, `.36.0/24` (No-NAT
    requires these to be declared).
 6. **Overlay subnets** in the VPC: `192.168.34.0/24`, `.35`, `.36`, gateway
-   `.1`, DHCP pool `.100-.199`, DNS `192.168.1.1`.
+   `.1`, DHCP pool `.100-.199`, DNS `192.168.8.1`.
 7. Note the VPC's external IP on .37, set it as `VPC_ROUTER_IP` in
    `network.conf` and re-run the bootstrap to finish the FRR routes from
    Phase 1.
@@ -241,7 +241,7 @@ host, single uplink, active-backup. If the installer pulled both NICs into
 - A VM on .34 can reach `1.1.1.1` and resolve names (lenora SNAT).
 - lenora can ping a VM on .36 (FRR route → VPC).
 - The workstation can reach a VM on .34 (needs the LAN-side route).
-- `traceroute` from the workstation to a .34 VM goes via 192.168.1.21, then
+- `traceroute` from the workstation to a .34 VM goes via 192.168.8.21, then
   192.168.37.x.
 
 ## Follow-ups outside this repo
